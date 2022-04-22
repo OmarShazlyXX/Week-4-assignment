@@ -2,7 +2,7 @@
 This is a codebook describing the final project of getting and cleaning data course, the run_analysis.R script 
 is a code that downloads a data set and performs some cleaning to achieve a tidy data set and below are the steps done:
 1) Downloading the data:
-The data is found in a zip format, so it will be downloaded and unzipped where it's called "UCI HAR Dataset"
+- The data is found in a zip format, so it will be downloaded and unzipped where it's called "UCI HAR Dataset"
 
 2) Creating the data frames:
 - features <- features.txt (561 rows, 2 columns)
@@ -29,14 +29,14 @@ contains test data of 9/30 volunteer test subjects being observed
 - binded (10299 rows, 563 columns) is created by merging binded, y_bind and x_bind using cbind() 
 
 4) Converting to data table for dplyr operations:
-binded_df <- binded (10299 rows, 563 columns)
+- binded_df <- binded (10299 rows, 563 columns)
 
 5) Selecting the mean and standard deviation readings only:
-binded_req (10299 rows, 88 columns) is created by subsetting binded_df,selecting only columns: subject, code, 
+- binded_req (10299 rows, 88 columns) is created by subsetting binded_df,selecting only columns: subject, code, 
 and the measurements on the mean and standard deviation (std) for each measurement
 
 6) Uses descriptive activity names to name the activities in the data set:
-merged (10299 rows, 89 columns) entire numbers in code column of the binded_req is used to merge the corresponding
+- merged (10299 rows, 89 columns) entire numbers in code column of the binded_req is used to merge the corresponding
 activity taken from second column of the activities variable
 
 7) Appropriately labels the data set with descriptive variable names:
