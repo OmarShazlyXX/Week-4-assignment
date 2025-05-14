@@ -1,0 +1,96 @@
+steps:
+  # Debug step to show environment variables
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'debug-info'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== DEBUG INFORMATION ==="
+        echo "Build ID: $BUILD_ID"
+        echo "Project ID: $PROJECT_ID"
+        echo "Commit SHA: $COMMIT_SHA"
+        echo "Branch: $BRANCH_NAME"
+        echo "Repository: $REPO_NAME"
+        echo "Trigger Name: $TRIGGER_NAME"
+        echo "=========================="
+        
+        # List all environment variables
+        echo "\nAll Environment Variables:"
+        env | sort
+        
+        # Check if we can access git info
+        echo "\nGit Information:"
+        git log -1 || echo "Cannot access git information"
+
+  # Step to publish a message to Pub/Sub
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'publish-to-pubsub'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Create a JSON payload with more information
+        echo "Creating JSON payload..."
+        echo "{
+          \"repository\": {
+            \"name\": \"$REPO_NAME\",
+            \"full_name\": \"$PROJECT_ID/$REPO_NAME\"
+          },
+          \"ref\": \"refs/heads/$BRANCH_NAME\",
+          \"pusher\": {
+            \"name\": \"Cloud Build\",
+            \"email\": \"cloud-build@example.com\"
+          },
+          \"commits\": [{
+            \"id\": \"$COMMIT_SHA\",
+            \"message\": \"Triggered by Cloud Build - $BUILD_ID\",
+            \"author\": {
+              \"name\": \"Cloud Build\",
+              \"email\": \"cloud-build@example.com\"
+            }
+          }]
+        }" > /workspace/event.json
+        
+        # Print the event data for debugging
+        echo "\nEvent JSON Payload:"
+        cat /workspace/event.json
+        
+        # Check if the Pub/Sub topic exists
+        echo "\nChecking if Pub/Sub topic exists..."
+        gcloud pubsub topics describe github-events --project=$PROJECT_ID || echo "Topic does not exist"
+        
+        # Publish to Pub/Sub with verbose output
+        echo "\nPublishing to Pub/Sub topic..."
+        gcloud pubsub topics publish github-events --message-file=/workspace/event.json --project=$PROJECT_ID
+        
+        echo "\nPublished event to github-events topic"
+        
+        # List subscriptions to verify they exist
+        echo "\nListing subscriptions for the topic:"
+        gcloud pubsub topics list-subscriptions github-events --project=$PROJECT_ID || echo "Failed to list subscriptions"
+        
+        # Print the event data for debugging
+        cat /workspace/event.json
+
+  # Publish event to Pub/Sub
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'publish-event'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Publish the event to Pub/Sub
+        gcloud pubsub topics publish github-events --message-body="$(cat /workspace/event.json)"
+        echo "Published event to github-events topic"
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - 'TOPIC_NAME=github-events'
+
+# Timeout for the entire build
+timeout: '600s'
+
+# Make sure this file is triggered on any change to the repository
